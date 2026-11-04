@@ -7,39 +7,66 @@ public class SecurityAuditVisitor implements ProjectVisitor {
     private int securityScore = 100;
     private int criticalIssuesCount = 0;
 
-    public int getSecurityScore() { return Math.max(0, securityScore); }
-    public int getCriticalIssuesCount() { return criticalIssuesCount; }
-
     @Override
     public void visit(SourceCodeFile file) {
-        if (file.isHighRiskFlag()) {
-            securityScore -= 15;
+        if (file.hasHardcodedCredentials()) {
+            System.out.println("  [SECURITY WARNING] Source file '" + file.getName() + "' contains hardcoded credentials!");
             criticalIssuesCount++;
+            securityScore -= 15;
+        } else {
+            System.out.println("  [OK] Source file '" + file.getName() + "' passed security check.");
         }
     }
 
     @Override
     public void visit(TestFile file) {
-        // Test files present negligible security risk
+        System.out.println("  [OK] Test file '" + file.getName() + "' is secure.");
     }
 
     @Override
     public void visit(ConfigurationFile file) {
-        if (file.hasExposedSecret()) {
-            securityScore -= 30;
+        if (!file.isSecure()) {
+            System.out.println("  [SECURITY WARNING] Configuration file '" + file.getName() + "' is unsecure!");
             criticalIssuesCount++;
+            securityScore -= 30;
+        } else {
+            System.out.println("  [OK] Configuration file '" + file.getName() + "' is secure.");
         }
     }
 
     @Override
     public void visit(DependencyFile file) {
-        int vulns = file.getVulnerableDependencies().size();
-        securityScore -= (vulns * 20);
-        criticalIssuesCount += vulns;
+        boolean hasIssues = false;
+        if (file.getVulnerableDependencies() != null && !file.getVulnerableDependencies().isEmpty()) {
+            hasIssues = true;
+        }
+        if (file.getDependencies() != null) {
+            for (String dep : file.getDependencies()) {
+                if (dep.contains("vulnerable") || dep.contains("gpl")) {
+                    hasIssues = true;
+                }
+            }
+        }
+
+        if (hasIssues) {
+            System.out.println("  [SECURITY WARNING] Dependency file '" + file.getName() + "' has vulnerabilities or issues.");
+            criticalIssuesCount++;
+            securityScore -= 20;
+        } else {
+            System.out.println("  [OK] Dependency file '" + file.getName() + "' has no known vulnerabilities.");
+        }
     }
 
     @Override
     public void visit(Directory directory) {
-        // No security penalty for directory containers
+        System.out.println("-> Scanning directory for security: " + directory.getName());
+    }
+
+    public int getSecurityScore() {
+        return Math.max(0, securityScore);
+    }
+
+    public int getCriticalIssuesCount() {
+        return criticalIssuesCount;
     }
 }

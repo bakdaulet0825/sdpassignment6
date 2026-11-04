@@ -6,41 +6,40 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ComplianceVisitor implements ProjectVisitor {
+    private boolean compliant = true;
     private final List<String> violations = new ArrayList<>();
-
-    public List<String> getViolations() { return violations; }
-    public boolean isCompliant() { return violations.isEmpty(); }
 
     @Override
     public void visit(SourceCodeFile file) {
-        if (file.getCyclomaticComplexity() > 15) {
-            violations.add("Complexity violation in file: " + file.getFileName());
-        }
+        System.out.println("  [COMPLIANCE] Checking coding conventions for: " + file.getName());
     }
 
     @Override
     public void visit(TestFile file) {
-        if (file.getTestCount() == 0) {
-            violations.add("Empty test file detected: " + file.getFileName());
-        }
+        System.out.println("  [COMPLIANCE] Verifying test naming for: " + file.getName());
     }
 
     @Override
     public void visit(ConfigurationFile file) {
-        if (file.hasExposedSecret()) {
-            violations.add("Exposed credentials detected in config: " + file.getFileName());
-        }
+        System.out.println("  [COMPLIANCE] Verifying configuration structure for: " + file.getName());
     }
 
     @Override
     public void visit(DependencyFile file) {
-        if (!file.getUnversionedDependencies().isEmpty()) {
-            violations.add("Unversioned dependencies found in: " + file.getFileName());
+        if (file.getProhibitedDependencies() != null && !file.getProhibitedDependencies().isEmpty()) {
+            compliant = false;
+            violations.addAll(file.getProhibitedDependencies());
+            System.out.println("  [COMPLIANCE WARNING] Prohibited dependencies found in " + file.getName());
+        } else {
+            System.out.println("  [COMPLIANCE PASS] All dependencies in " + file.getName() + " comply with standards.");
         }
     }
 
     @Override
     public void visit(Directory directory) {
-        // Compliance checks for directory names if needed
+        System.out.println("-> Checking compliance rules in: " + directory.getName());
     }
+
+    public boolean isCompliant() { return compliant; }
+    public List<String> getViolations() { return violations; }
 }

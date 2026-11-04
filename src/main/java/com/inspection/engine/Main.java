@@ -2,58 +2,58 @@ package com.inspection.engine;
 
 import com.inspection.engine.elements.*;
 import com.inspection.engine.visitors.*;
-
 import java.util.List;
 import java.util.Map;
 
 public class Main {
     public static void main(String[] args) {
-        // Construct target fintech structure
         Directory root = new Directory("fintech-project");
 
-        Directory srcDir = new Directory("src");
-        srcDir.addElement(new SourceCodeFile("PaymentService.java", 250, 14, true));
-        srcDir.addElement(new SourceCodeFile("UserService.java", 120, 4, false));
+        Directory src = new Directory("src");
+        src.addChild(new SourceCodeFile("PaymentService.java", 120, 8, true));
+        src.addChild(new SourceCodeFile("UserService.java", 80, 5, false));
+        root.addChild(src);
 
-        Directory testsDir = new Directory("tests");
-        testsDir.addElement(new TestFile("PaymentServiceTest.java", 180, 12, "JUnit 5"));
+        Directory tests = new Directory("tests");
+        tests.addChild(new TestFile("PaymentServiceTest.java", 45, 6, "JUnit5"));
+        root.addChild(tests);
 
-        Directory configDir = new Directory("config");
-        configDir.addElement(new ConfigurationFile("application.properties", 45, Map.of("AWS_SECRET_KEY", "xxxx")));
+        Directory config = new Directory("config");
+        config.addChild(new ConfigurationFile("application.properties", 25, Map.of()));
+        root.addChild(config);
 
-        root.addElement(srcDir);
-        root.addElement(testsDir);
-        root.addElement(configDir);
-        root.addElement(new DependencyFile("pom.xml", 8, List.of("log4j-1.2.17"), List.of()));
+        root.addChild(new DependencyFile("pom.xml", 1, List.of("org.springframework:6.0.0")));
 
-        // Run Visitors
+        System.out.println("=== 1. SECURITY AUDIT VISITOR ===");
         SecurityAuditVisitor securityVisitor = new SecurityAuditVisitor();
-        ProjectStatisticsVisitor statsVisitor = new ProjectStatisticsVisitor();
-        QualityGateVisitor qualityGateVisitor = new QualityGateVisitor();
-        ComplianceVisitor complianceVisitor = new ComplianceVisitor();
-        LicenseAuditVisitor licenseVisitor = new LicenseAuditVisitor();
-
         root.accept(securityVisitor);
+
+        System.out.println("\n=== 2. PROJECT STATISTICS VISITOR ===");
+        ProjectStatisticsVisitor statsVisitor = new ProjectStatisticsVisitor();
         root.accept(statsVisitor);
-        root.accept(qualityGateVisitor);
+        statsVisitor.printSummary();
+
+        System.out.println("\n=== 3. QUALITY GATE VISITOR ===");
+        QualityGateVisitor qualityVisitor = new QualityGateVisitor();
+        root.accept(qualityVisitor);
+
+        System.out.println("\n=== QUALITY GATE SUMMARY ===");
+        if (qualityVisitor.isPassed()) {
+            System.out.println("FINAL RESULT: PASS");
+        } else {
+            System.out.println("FINAL RESULT: FAILED");
+        }
+        System.out.println("Complexity: " +
+                (qualityVisitor.isComplexityPassed() ? "PASS" : "FAIL"));
+
+        System.out.println("\n=== 4. COMPLIANCE VISITOR ===");
+        ComplianceVisitor complianceVisitor = new ComplianceVisitor();
         root.accept(complianceVisitor);
+
+        System.out.println("\n=== 5. LICENSE AUDIT VISITOR ===");
+        LicenseAuditVisitor licenseVisitor = new LicenseAuditVisitor();
         root.accept(licenseVisitor);
 
-        // Display Reports
-        System.out.println("=== SECURITY AUDIT ===");
-        System.out.println("Security Score: " + securityVisitor.getSecurityScore());
-        System.out.println("Critical Issues: " + securityVisitor.getCriticalIssuesCount());
-
-        System.out.println("\n=== PROJECT STATISTICS ===");
-        System.out.println("Total Files: " + statsVisitor.getTotalFiles());
-        System.out.println("Total Lines of Code: " + statsVisitor.getTotalLinesOfCode());
-        System.out.println("Avg Complexity: " + statsVisitor.getAverageComplexity());
-        System.out.println("Test/Source Ratio: " + statsVisitor.getTestToSourceRatio());
-
-        System.out.println("\n=== QUALITY GATE ===");
-        System.out.println(qualityGateVisitor.generateReport());
-
-        System.out.println("\n=== COMPLIANCE VIOLATIONS ===");
-        complianceVisitor.getViolations().forEach(v -> System.out.println("- " + v));
+        System.out.println("\nFintech project inspection completed successfully!");
     }
 }

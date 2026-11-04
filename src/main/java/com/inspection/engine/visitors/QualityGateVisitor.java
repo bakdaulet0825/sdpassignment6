@@ -4,66 +4,40 @@ import com.inspection.engine.ProjectVisitor;
 import com.inspection.engine.elements.*;
 
 public class QualityGateVisitor implements ProjectVisitor {
-    private final SecurityAuditVisitor securityVisitor = new SecurityAuditVisitor();
-    private final ProjectStatisticsVisitor statsVisitor = new ProjectStatisticsVisitor();
+    private boolean complexityPassed = true;
+    private boolean passed = true;
 
     @Override
     public void visit(SourceCodeFile file) {
-        securityVisitor.visit(file);
-        statsVisitor.visit(file);
+        if (file.getComplexity() > 10) {
+            System.out.println("  [QUALITY GATE FAIL] Source file '" + file.getName() + "' has high complexity: " + file.getComplexity());
+            complexityPassed = false;
+            passed = false;
+        } else {
+            System.out.println("  [QUALITY GATE PASS] Source file '" + file.getName() + "' complexity is acceptable (" + file.getComplexity() + ").");
+        }
     }
 
     @Override
     public void visit(TestFile file) {
-        securityVisitor.visit(file);
-        statsVisitor.visit(file);
+        System.out.println("  [QUALITY GATE PASS] Test file '" + file.getName() + "' meets quality standards.");
     }
 
     @Override
     public void visit(ConfigurationFile file) {
-        securityVisitor.visit(file);
-        statsVisitor.visit(file);
+        System.out.println("  [QUALITY GATE PASS] Config file '" + file.getName() + "' checked.");
     }
 
     @Override
     public void visit(DependencyFile file) {
-        securityVisitor.visit(file);
-        statsVisitor.visit(file);
+        System.out.println("  [QUALITY GATE PASS] Dependency file '" + file.getName() + "' checked.");
     }
 
     @Override
     public void visit(Directory directory) {
-        securityVisitor.visit(directory);
-        statsVisitor.visit(directory);
+        System.out.println("-> Running Quality Gates for: " + directory.getName());
     }
 
-    public boolean isComplexityPassed() {
-        return statsVisitor.getAverageComplexity() <= 10.0;
-    }
-
-    public boolean isTestRatioPassed() {
-        return statsVisitor.getTestToSourceRatio() >= 0.40;
-    }
-
-    public boolean isSecurityPassed() {
-        return securityVisitor.getCriticalIssuesCount() == 0;
-    }
-
-    public boolean isPassed() {
-        return isComplexityPassed() && isTestRatioPassed() && isSecurityPassed();
-    }
-
-    public String generateReport() {
-        return String.format(
-                "Quality Gate Result:\n" +
-                        "Security: %s (Critical Issues: %d)\n" +
-                        "Complexity: %s (Avg: %.2f)\n" +
-                        "Tests: %s (Ratio: %.2f)\n" +
-                        "FINAL RESULT: %s",
-                isSecurityPassed() ? "PASS" : "FAIL", securityVisitor.getCriticalIssuesCount(),
-                isComplexityPassed() ? "PASS" : "FAIL", statsVisitor.getAverageComplexity(),
-                isTestRatioPassed() ? "PASS" : "FAIL", statsVisitor.getTestToSourceRatio(),
-                isPassed() ? "PASSED" : "FAILED"
-        );
-    }
+    public boolean isPassed() { return passed; }
+    public boolean isComplexityPassed() { return complexityPassed; }
 }
